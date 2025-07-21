@@ -5,10 +5,12 @@ import importlib
 import logging
 from typing import TextIO, Callable
 
+
+logger = logging.getLogger("iohook")
+
 type Hook = Callable[[str], str]
 
-
-direct_hook = lambda x: x
+direct_hook: Hook = lambda x: x
 input_hook: Hook = direct_hook
 output_hook: Hook = direct_hook
 
@@ -17,7 +19,7 @@ try:
     input_hook = getattr(module, "input_hook", direct_hook)
     output_hook = getattr(module, "output_hook", direct_hook)
 except ImportError:
-    logging.warning("'hook.py' not found in the current working directory. Hooks will not be applied.")
+    logger.warning("'hook.py' not found in the current working directory. Hooks will not be applied.")
 
 
 def io_forward(source: TextIO, target: TextIO, hook: Hook) -> None:
@@ -27,7 +29,7 @@ def io_forward(source: TextIO, target: TextIO, hook: Hook) -> None:
             target.write(content)
             target.flush()
     except Exception:
-        logging.exception("ERROR OCCURRED")
+        logger.exception("ERROR OCCURRED")
     finally:
         source.close()
         target.close()
