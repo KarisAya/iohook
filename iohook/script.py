@@ -12,7 +12,6 @@ def main():
 
     import logging
     import importlib
-    import importlib.util
     import subprocess
     import threading
     from pathlib import Path
@@ -21,13 +20,10 @@ def main():
     pass_hook: Hook = lambda x: x
 
     try:
-        if not ((hook_path := Path("hook/__init__.py")).exists() or (hook_path := Path("hook.py")).exists()):
-            raise ImportError
-        spec = importlib.util.spec_from_file_location("iohook.hook", hook_path)
-        if spec is None or spec.loader is None:
-            raise ImportError
-        hook = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(hook)
+        current_dir = Path.cwd().absolute().as_posix()
+        sys.path.append(current_dir)
+        hook = importlib.import_module("hook")
+        sys.path.remove(current_dir)
         input_hook = getattr(hook, "input_hook", pass_hook)
         output_hook = getattr(hook, "output_hook", pass_hook)
     except ImportError:
