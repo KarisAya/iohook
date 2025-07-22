@@ -10,33 +10,34 @@ def main():
     if not command:
         return
 
-    import logging
     import importlib
     import subprocess
     import threading
     from pathlib import Path
 
-    logger = logging.getLogger("iohook")
-    pass_hook: Callback = lambda x: None
+    no_call: Callback = lambda x: None
     current_dir = Path.cwd().absolute().as_posix()
     sys.path.append(current_dir)
     try:
         module = importlib.import_module("hook")
-        hook = getattr(module, "callback", None) or getattr(module, "__callback__", pass_hook)
+        func = getattr(module, "callback", None) or getattr(module, "__callback__", no_call)
     except ImportError:
-        logger.warning("Module 'hook' not found in the current working directory. Hooks will not be applied.")
-        hook = pass_hook
+        print("Module 'hook' not found in the current working directory. hook will not be applied.")
+        func = no_call
     finally:
         sys.path.remove(current_dir)
 
     def io_forward(source: BinaryIO, target: BinaryIO, callback: Callback) -> None:
-        try:
-            while content := source.readline():
+        while content := source.readline():
+            try:
                 callback(content)
-                target.write(content)
-                target.flush()
-        except Exception:
-            logger.exception("ERROR OCCURRED")
+            except Exception:
+                print(f"ERROR OCCURRED")
+                import traceback
+
+                traceback.print_exc()
+            target.write(content)
+            target.flush()
 
     proc = subprocess.Popen(
         command,
@@ -45,7 +46,7 @@ def main():
         stderr=sys.stderr,
     )
     assert proc.stdout
-    thread = threading.Thread(target=io_forward, args=(proc.stdout, sys.stdout.buffer, hook), daemon=True)
+    thread = threading.Thread(target=io_forward, args=(proc.stdout, sys.stdout.buffer, func), daemon=True)
     thread.start()
     return_code = proc.wait()
     thread.join()
