@@ -44,6 +44,7 @@ def main():
         stdin=sys.stdin,
         stdout=subprocess.PIPE,
         stderr=sys.stderr,
+        shell=True,
     )
     assert proc.stdout
     thread = threading.Thread(target=io_forward, args=(proc.stdout, sys.stdout.buffer, func), daemon=True)
